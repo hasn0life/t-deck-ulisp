@@ -6,6 +6,8 @@ The [T-Deck repo](https://github.com/Xinyuan-LilyGO/T-Deck)  contains instructio
 
 I used the [Arduino gfx](https://github.com/moononournation/Arduino_GFX) library instead of the adafruit one because the T-Deck repo examples had it working.  
 
+Note that the I2C port is routed to pins SDA -> 18 and SCL -> 8
+
 # ulisp functions for screen and keyboard so far
 
 ```
@@ -39,6 +41,6 @@ I used the [Arduino gfx](https://github.com/moononournation/Arduino_GFX) library
 (t (getline (print-string (concatenate 'string txt (string ch)) 2) (get)))))
 
 ;; getline call example
-(getline txt (get))
+(getline "" (get))
 
 ```
