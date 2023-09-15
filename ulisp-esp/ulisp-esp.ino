@@ -15,9 +15,10 @@ const char LispLibrary[] PROGMEM = "";
 // #define sdcardsupport
  #define gfxsupport
 // #define lisplibrary
- #define lineeditor
- #define vt100
+//  #define lineeditor
+//  #define vt100
 // #define extensions
+// #define ULISP_I2C1
 
 #define BOARD_I2C_SDA       18
 #define BOARD_I2C_SCL       8
@@ -1692,12 +1693,12 @@ object *mapcarcan (object *args, object *env, mapfun_t fun) {
 
 void I2Cinit (TwoWire *port, bool enablePullup) {
   (void) enablePullup;
-  //temp hack to allow pins to move for ESP32
-  #if defined (BOARD_I2C_SDA) && defined (BOARD_I2C_SCL) 
-    port->begin(BOARD_I2C_SDA, BOARD_I2C_SCL);
-  #else
-    port->begin();
-  #endif
+  port->begin();
+}
+
+void I2Cinit (TwoWire *port, uint8_t SDA, uint8_t SCL, bool enablePullup) {
+  (void) enablePullup;
+  port->begin(SDA, SCL);
 }
 
 int I2Cread (TwoWire *port) {
@@ -2382,9 +2383,17 @@ object *sp_withi2c (object *args, object *env) {
   // Top bit of address is I2C port
   TwoWire *port = &Wire;
   #if defined(ULISP_I2C1)
-  if (address > 127) port = &Wire1;
-  #endif
+  if (address > 127){
+    //i2c1 gets reassigned pins
+    port = &Wire1;
+    I2Cinit(port, BOARD_I2C_SDA, BOARD_I2C_SCL, 1); // Pullups
+  }else{
+    I2Cinit(port, 1); // Pullups
+  }
+  #else
   I2Cinit(port, 1); // Pullups
+  //  I2Cinit(port, BOARD_I2C_SDA, BOARD_I2C_SCL, 1); // Pullups
+  #endif
   object *pair = cons(var, (I2Cstart(port, address & 0x7F, read)) ? stream(I2CSTREAM, address) : nil);
   push(pair,env);
   object *forms = cdr(args);
@@ -5658,6 +5667,7 @@ object *eval (object *form, object *env) {
 
 void pserial (char c) {
   LastPrint = c;
+  Display(c);
   if (c == '\n') Serial.write('\r');
   Serial.write(c);
 }
@@ -6161,6 +6171,81 @@ object *read (gfun_t gfun) {
   return item;
 }
 
+void PlotChar (uint8_t ch, uint16_t line, uint16_t column) {
+  // tft.setTextSize(2);
+  // uint8_t row = line<<4;//line<<3; 
+  // uint8_t col = column*12; //column*3;
+  tft.setTextSize(1);
+  uint16_t row = (line*9) + 3;//line<<3; 
+  uint16_t col = (column*6) + 3; //column*3;
+  uint8_t off = (ch & 0x80) ? 0x7 : 0;    // Parenthesis highlight
+  ch = (ch & 0x7f);
+  if(off){
+    tft.drawChar(col, row, ch, COLOR_BLACK, COLOR_WHITE);
+  }else{
+    tft.drawChar(col, row, ch, COLOR_WHITE, COLOR_BLACK);
+  }
+}
+
+
+// Prints a character to display, with cursor, handling control characters
+void Display (char c) {
+  const int LastColumn = 51; //41;
+  static uint8_t Line = 0, Column = 0, Scroll = 0;
+  // These characters don't affect the cursor
+  if (c == 8) {                    // Backspace
+    if (Column == 0) {
+      Line--; Column = LastColumn;
+    } else Column--;
+    return;
+  }
+  if (c == 9) {                    // Cursor forward
+    if (Column == LastColumn) {
+      Line++; Column = 0;
+    } else Column++;
+    return;
+  }
+  if ((c >= 17) && (c <= 20)) {    // Parentheses
+    if (c == 17) PlotChar('(', Line+Scroll, Column);
+    else if (c == 18) PlotChar('(' | 0x80, Line+Scroll, Column);
+    else if (c == 19) PlotChar(')', Line+Scroll, Column);
+    else PlotChar(')' | 0x80, Line+Scroll, Column);
+    return;
+  }
+  // Hide cursor
+  PlotChar(' ', Line+Scroll, Column);
+  if (c == 0x7F) {                 // DEL
+    if (Column == 0) {
+      Line--; Column = LastColumn;
+    } else Column--;
+  } else if ((c & 0x7f) >= 32) {   // Normal character
+    PlotChar(c, Line+Scroll, Column++);
+    if (Column > LastColumn) {
+      Column = 0;
+      //if (Line == 7) ScrollDisplay(&Scroll); else Line++;
+      Line++;
+    }
+  // Control characters
+  } else if (c == 12) {            // Clear display
+    tft.fillScreen(COLOR_BLACK); 
+    Line = 0; 
+    Column = 0;
+  } else if (c == '\n') {          // Newline
+    Column = 0;
+    // if (Line == 7) ScrollDisplay(&Scroll); else Line++;
+    Line++;
+  } else if (c == 7) tone(4, 440, 125); // Beep
+  // Show cursor
+  //PlotChar(0x7F, Line+Scroll, Column);
+  PlotChar(0x5F, Line+Scroll, Column);
+  
+}
+
+void initKybd () {
+  //were gonna devote the second I2C port to the peripherals, for now just keyboard
+  I2Cinit(&Wire1, BOARD_I2C_SDA, BOARD_I2C_SCL, 1);
+}
+
 // Setup
 
 void initenv () {
@@ -6193,6 +6278,7 @@ void setup () {
   initenv();
   initsleep();
   initgfx();
+  initKybd();
   pfstring(PSTR("uLisp 4.4d "), pserial); pln(pserial);
 }
 

@@ -6,7 +6,8 @@ The [T-Deck repo](https://github.com/Xinyuan-LilyGO/T-Deck)  contains instructio
 
 I used the [Arduino gfx](https://github.com/moononournation/Arduino_GFX) library instead of the adafruit one because the T-Deck repo examples had it working.  
 
-Note that the I2C port is routed to pins SDA -> 18 and SCL -> 8
+Note that the I2C port needs to be routed to pins SDA -> 18 and SCL -> 8
+I have routed them for the Wire1 port but not for the default port. To use these functions uncomment line 2395
 
 # ulisp functions for screen and keyboard so far
 
