@@ -15,7 +15,7 @@ const char LispLibrary[] PROGMEM = "";
 // #define sdcardsupport
  #define gfxsupport
 // #define lisplibrary
-//  #define lineeditor
+  #define lineeditor
 //  #define vt100
 // #define extensions
 // #define ULISP_I2C1
@@ -2392,7 +2392,7 @@ object *sp_withi2c (object *args, object *env) {
   }
   #else
   I2Cinit(port, 1); // Pullups
-  //  I2Cinit(port, BOARD_I2C_SDA, BOARD_I2C_SCL, 1); // Pullups
+    // I2Cinit(port, BOARD_I2C_SDA, BOARD_I2C_SCL, 1); // Pullups
   #endif
   object *pair = cons(var, (I2Cstart(port, address & 0x7F, read)) ? stream(I2CSTREAM, address) : nil);
   push(pair,env);
@@ -5963,11 +5963,13 @@ void processkey (char c) {
     if (WritePtr > 0) {
       WritePtr--;
       Serial.write(8); Serial.write(' '); Serial.write(8);
+      Display(8);  Display(' '); Display(8); //same backspacing strategy as above
       if (WritePtr) c = KybdBuf[WritePtr-1];
     }
   } else if (WritePtr < KybdBufSize) {
     KybdBuf[WritePtr++] = c;
     Serial.write(c);
+    Display(c);
   }
 #if defined(vt100)
   // Do new parenthesis highlight
@@ -5995,9 +5997,21 @@ int gserial () {
   }
 #if defined(lineeditor)
   while (!KybdAvailable) {
-    while (!Serial.available());
-    char temp = Serial.read();
-    processkey(temp);
+    // while (!Serial.available());
+    //we'll either get a character from the serial port or the I2C keyboard
+    if (Serial.available()){
+      char temp = Serial.read();
+      processkey(temp);
+    }
+    else{
+      Wire1.requestFrom(0x55, 1);
+      if(Wire1.available()){
+        char temp = Wire1.read();
+        if((temp != 0) && (temp !=255) ){
+          processkey(temp);
+        }
+      }
+    }
   }
   if (ReadPtr != WritePtr) return KybdBuf[ReadPtr++];
   KybdAvailable = 0;
@@ -6194,9 +6208,12 @@ void Display (char c) {
   static uint8_t Line = 0, Column = 0, Scroll = 0;
   // These characters don't affect the cursor
   if (c == 8) {                    // Backspace
+    PlotChar(' ', Line+Scroll, Column); //hide cursor?
     if (Column == 0) {
       Line--; Column = LastColumn;
     } else Column--;
+    PlotChar(0x5F, Line+Scroll, Column); //show cursor
+    // Serial.print("line "); Serial.print(Line); Serial.print(" column "); Serial.println(Column);
     return;
   }
   if (c == 9) {                    // Cursor forward
@@ -6241,7 +6258,7 @@ void Display (char c) {
   
 }
 
-void initKybd () {
+void initkybd () {
   //were gonna devote the second I2C port to the peripherals, for now just keyboard
   I2Cinit(&Wire1, BOARD_I2C_SDA, BOARD_I2C_SCL, 1);
 }
@@ -6278,7 +6295,7 @@ void setup () {
   initenv();
   initsleep();
   initgfx();
-  initKybd();
+  initkybd();
   pfstring(PSTR("uLisp 4.4d "), pserial); pln(pserial);
 }
 
