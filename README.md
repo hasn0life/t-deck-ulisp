@@ -1,7 +1,7 @@
 # t-deck-ulisp
 Attempt at getting ulisp running on the [Lilygo T-Deck](https://github.com/Xinyuan-LilyGO/T-Deck) 
 
-#status 
+# status 
 Modified pserial and gserial functions such that the terminal is mirrored on the t-deck display and the t-deck keyboard types to the terminal. No scrolling yet and backspacing doesnt work on newlines, but is otherwise vaguely usable.
 
 
