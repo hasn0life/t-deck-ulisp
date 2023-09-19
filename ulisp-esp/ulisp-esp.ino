@@ -19,6 +19,7 @@ const char LispLibrary[] PROGMEM = "";
 //  #define vt100
 // #define extensions
 // #define ULISP_I2C1
+// #define INVERT_COLOR
 
 #define BOARD_I2C_SDA       18
 #define BOARD_I2C_SCL       8
@@ -35,8 +36,14 @@ const char LispLibrary[] PROGMEM = "";
 #if defined(gfxsupport)
 
 //I dont know if these are defined in this library
+#if defined (INVERT_COLOR)
   #define COLOR_WHITE 0xFFFF
   #define COLOR_BLACK 0x0000
+#else
+  #define COLOR_WHITE 0x0000
+  #define COLOR_BLACK 0xFFFF
+#endif
+
   #define TDECK_PERI_POWERON 10
 
   #define TDECK_SPI_MOSI 41
@@ -6190,7 +6197,7 @@ void PlotChar (uint8_t ch, uint16_t line, uint16_t column) {
   // uint8_t row = line<<4;//line<<3; 
   // uint8_t col = column*12; //column*3;
   tft.setTextSize(1);
-  uint16_t row = (line*9) + 3;//line<<3; 
+  uint16_t row = (line*10) + 2;//line<<3; 
   uint16_t col = (column*6) + 3; //column*3;
   uint8_t off = (ch & 0x80) ? 0x7 : 0;    // Parenthesis highlight
   ch = (ch & 0x7f);
@@ -6213,7 +6220,6 @@ void Display (char c) {
       Line--; Column = LastColumn;
     } else Column--;
     PlotChar(0x5F, Line+Scroll, Column); //show cursor
-    // Serial.print("line "); Serial.print(Line); Serial.print(" column "); Serial.println(Column);
     return;
   }
   if (c == 9) {                    // Cursor forward

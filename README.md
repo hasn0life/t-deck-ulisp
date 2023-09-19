@@ -11,3 +11,5 @@ The [T-Deck repo](https://github.com/Xinyuan-LilyGO/T-Deck)  contains instructio
 I used the [Arduino gfx](https://github.com/moononournation/Arduino_GFX) library instead of the adafruit one because the T-Deck repo examples had it working.  
 
 The second I2C port (Wire1) is routed to pins SDA -> 18 and SCL -> 8 and is dedicated to the keyboard
+
+Some t-decks have their screen colors inverted depending on the hardware? (The example code that comes with it asks you to check inversion)
