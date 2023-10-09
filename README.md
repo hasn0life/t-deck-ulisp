@@ -1,3 +1,6 @@
+# The offical repo is here!!!
+https://github.com/technoblogy/ulisp-tdeck is the offical version, I'm keeping my repo up for historical reasons and possibly further experiements
+
 # t-deck-ulisp
 Attempt at getting ulisp running on the [Lilygo T-Deck](https://github.com/Xinyuan-LilyGO/T-Deck) 
 
